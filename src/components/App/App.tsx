@@ -1,58 +1,93 @@
 import css from "./App.module.css";
-import SearchBar from "../SearchBar/SearchBar";
-import toast, { Toaster } from "react-hot-toast";
-import { fetchMovies } from "../../services/movieService";
+import { Toaster } from "react-hot-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchNotes, createNote } from "../../services/noteService";
+import type { Note, NotesResponse } from "../../types/note";
+import NoteList from "../NoteList/NoteList";
 import { useState } from "react";
-import type { Movie } from "../../types/movie";
-import MovieGrid from "../MovieGrid/MovieGrid";
-import Loader from "../Loader/Loader";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import MovieModal from "../MovieModal/MovieModal";
+import Pagination from "../Pagination/Pagination";
+import Modal from "../Modal/Modal";
 
 export default function App() {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const perPage = 8;
+  const queryClient = useQueryClient();
 
-  const handleSearch = async (newQuery: string) => {
-    setIsLoading(true);
-    setError(null);
-    setMovies([]);
-    try {
-      const results = await fetchMovies(newQuery);
-      setMovies(results);
+  const { data, isLoading, isError } = useQuery<NotesResponse>({
+    queryKey: ["notes", currentPage, perPage, search],
+    queryFn: () => fetchNotes(currentPage, perPage, search),
+    keepPreviousData: true,
+  });
 
-      if (results.length === 0) {
-        toast.error("No movies found for your request.");
-      }
-    } catch (error) {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+  const createNoteMutation = useMutation({
+    mutationFn: createNote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      setIsModalOpen(false);
+    },
+  });
+
+  const handleOpenModal = () => setIsModalOpen(true);
+  const handleCloseModal = () => setIsModalOpen(false);
+
+  const handleCreateNoteSubmit = (newNoteData: {
+    title: string;
+    content: string;
+    tag: Note["tag"];
+  }) => {
+    createNoteMutation.mutate(newNoteData);
   };
 
-  const handleSelectMovie = (movie: Movie) => {
-    setSelectedMovie(movie);
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const newSearch = (formData.get("search") as string) || "";
+    setSearch(newSearch);
+    setCurrentPage(1);
   };
-  const closeModal = () => {
-    setSelectedMovie(null);
-  };
+
+  const hasResults = !!data?.notes?.length;
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <div className={css.app}>
-      <SearchBar onSubmit={handleSearch} />
-      <Toaster position="top-center" />
+      <header className={css.toolbar}>
+        <form onSubmit={handleSearchSubmit} className={css.searchForm}>
+          <input
+            type="text"
+            name="search"
+            placeholder="Search notes..."
+            defaultValue={search}
+          />
+          <button type="submit">Search</button>
+        </form>
+        <button className={css.button} onClick={handleOpenModal}>
+          Create note +
+        </button>
+      </header>
 
-      {isLoading ? (
-        <Loader />
-      ) : (
-        <MovieGrid movies={movies} onSelect={handleSelectMovie} />
+      {isLoading && <strong className={css.loading}>Loading notes...</strong>}
+      {createNoteMutation.isPending && (
+        <strong className={css.loading}>Creating note...</strong>
       )}
-      {error && <ErrorMessage message={error} />}
-      {selectedMovie && (
-        <MovieModal movie={selectedMovie} onClose={closeModal} />
+      {isError && <strong className={css.error}>Error loading notes</strong>}
+
+      {hasResults && (
+        <Pagination
+          pageCount={totalPages}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+        />
+      )}
+
+      <Toaster position="top-right" />
+
+      {data && !isLoading && <NoteList notes={data.notes ?? []} />}
+
+      {isModalOpen && (
+        <Modal onClose={handleCloseModal} onSubmit={handleCreateNoteSubmit} />
       )}
     </div>
   );
