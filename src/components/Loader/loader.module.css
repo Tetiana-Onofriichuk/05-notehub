@@ -3,14 +3,3 @@
   justify-content: center;
   align-items: center;
 }
-
-.loaderInline {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 0;
-  font-size: 14px;
-  color: #ff7700;
-  width: 100%;
-}
