@@ -32,15 +32,7 @@ export const createNote = async (
 };
 
 // Видалити нотатку
-export const deleteNote = async (noteId: NoteId) => {
-  await axios.delete(`/notes/${noteId}`);
-};
-
-// Оновити нотатку
-export const updateNote = async (
-  noteId: NoteId,
-  updatedFields: Partial<Note>
-) => {
-  const { data } = await axios.patch<Note>(`/notes/${noteId}`, updatedFields);
+export const deleteNote = async (noteId: NoteId): Promise<Note> => {
+  const { data } = await axios.delete<Note>(`/notes/${noteId}`);
   return data;
 };

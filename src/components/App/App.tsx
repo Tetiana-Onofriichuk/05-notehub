@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import css from "./App.module.css";
 import { Toaster } from "react-hot-toast";
 import {
@@ -7,23 +8,27 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import { fetchNotes, createNote } from "../../services/noteService";
-import type { Note, NotesResponse } from "../../types/note";
+import type { Note } from "../../types/note";
 import NoteList from "../NoteList/NoteList";
-import { useState } from "react";
 import Pagination from "../Pagination/Pagination";
 import Modal from "../Modal/Modal";
 import SearchBox from "../SearchBox/SearchBox";
 import Loader from "../Loader/loader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import NoteForm from "../NoteForm/NoteForm";
 
 export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [searchInput, setSearchInput] = useState("");
+
   const [search, setSearch] = useState("");
+
   const perPage = 8;
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError, isFetching } = useQuery<NotesResponse>({
+  const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ["notes", currentPage, perPage, search],
     queryFn: () => fetchNotes(currentPage, perPage, search),
     placeholderData: keepPreviousData,
@@ -48,10 +53,14 @@ export default function App() {
     createNoteMutation.mutate(newNoteData);
   };
 
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    setCurrentPage(1);
-  };
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(searchInput);
+      setCurrentPage(1);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchInput]);
 
   const hasResults = !!data?.notes?.length;
   const totalPages = data?.totalPages ?? 1;
@@ -59,7 +68,7 @@ export default function App() {
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
-        <SearchBox onSearch={handleSearch} />
+        <SearchBox onSearch={setSearchInput} />
         <button className={css.button} onClick={handleOpenModal}>
           Create note +
         </button>
@@ -97,7 +106,9 @@ export default function App() {
         {data && !isLoading && <NoteList notes={data.notes ?? []} />}
 
         {isModalOpen && (
-          <Modal onClose={handleCloseModal} onSubmit={handleCreateNoteSubmit} />
+          <Modal onClose={handleCloseModal}>
+            <NoteForm onSubmit={handleCreateNoteSubmit} />
+          </Modal>
         )}
       </main>
     </div>

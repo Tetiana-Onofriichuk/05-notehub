@@ -1,14 +1,14 @@
+// src/components/NoteModal/NoteModal.tsx
 import css from "./Modal.module.css";
 import { createPortal } from "react-dom";
 import { useEffect } from "react";
-import NoteForm from "../NoteForm/NoteForm";
-import type { NoteFormValues } from "../NoteForm/NoteForm";
+
 interface NoteModalProps {
   onClose: () => void;
-  onSubmit: (values: NoteFormValues) => void;
+  children: React.ReactNode;
 }
 
-export default function NoteModal({ onClose, onSubmit }: NoteModalProps) {
+export default function NoteModal({ onClose, children }: NoteModalProps) {
   const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
       onClose();
@@ -23,11 +23,14 @@ export default function NoteModal({ onClose, onSubmit }: NoteModalProps) {
     };
 
     document.addEventListener("keydown", handleKeyDown);
+
+    // Блокуємо прокрутку
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
+      document.body.style.overflow = prevOverflow; // Відновлюємо попереднє значення
     };
   }, [onClose]);
 
@@ -38,9 +41,7 @@ export default function NoteModal({ onClose, onSubmit }: NoteModalProps) {
       aria-modal="true"
       onClick={handleBackdropClick}
     >
-      <div className={css.modal}>
-        <NoteForm onSubmit={onSubmit} onCancel={onClose} />
-      </div>
+      <div className={css.modal}>{children}</div>
     </div>,
     document.body
   );

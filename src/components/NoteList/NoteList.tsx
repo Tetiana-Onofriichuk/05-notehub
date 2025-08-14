@@ -35,7 +35,8 @@ export default function NoteList({ notes }: NoteListProps) {
           <h2 className={css.title}>{note.title}</h2>
           <p className={css.content}>{note.content}</p>
           <div className={css.footer}>
-            {note.tag && <span className={css.tag}>{note.tag}</span>}
+            {/* Тег тепер завжди відображається */}
+            <span className={css.tag}>{note.tag || "No tag"}</span>
             <button
               className={css.button}
               onClick={() => {

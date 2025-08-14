@@ -1,7 +1,9 @@
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import css from "./NoteForm.module.css";
-import type { Tag } from "../../types/note"; // Використовуємо готовий Tag з типів
+import type { Tag } from "../../types/note";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createNote } from "../../services/noteService";
 
 export interface NoteFormValues {
   title: string;
@@ -11,8 +13,8 @@ export interface NoteFormValues {
 
 interface NoteFormProps {
   initialValues?: NoteFormValues;
-  onSubmit: (values: NoteFormValues) => void;
   onCancel?: () => void;
+  onSubmit?: (newNoteData: NoteFormValues) => void;
 }
 
 const validationSchema = Yup.object({
@@ -30,16 +32,29 @@ const validationSchema = Yup.object({
 
 export default function NoteForm({
   initialValues = { title: "", content: "", tag: "Todo" },
-  onSubmit,
   onCancel,
 }: NoteFormProps) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (newNote: NoteFormValues) => createNote(newNote),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+    },
+  });
+
   return (
     <Formik
       initialValues={initialValues}
       validationSchema={validationSchema}
-      onSubmit={(values, { setSubmitting }) => {
-        onSubmit(values);
-        setSubmitting(false);
+      onSubmit={(values, { setSubmitting, resetForm }) => {
+        mutation.mutate(values, {
+          onSuccess: () => {
+            resetForm();
+            if (onCancel) onCancel();
+          },
+          onSettled: () => setSubmitting(false),
+        });
       }}
     >
       {({ isSubmitting }) => (
@@ -89,9 +104,9 @@ export default function NoteForm({
             <button
               type="submit"
               className={css.submitButton}
-              disabled={isSubmitting}
+              disabled={isSubmitting || mutation.isPending}
             >
-              Create note
+              {mutation.isPending ? "Creating..." : "Create note"}
             </button>
           </div>
         </Form>

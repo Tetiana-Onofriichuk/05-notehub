@@ -9,8 +9,3 @@ export interface Note {
 
 export type NoteId = Note["id"];
 export type Tag = Note["tag"];
-
-export interface NotesResponse {
-  notes: Note[];
-  totalPages: number;
-}
