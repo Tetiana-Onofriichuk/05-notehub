@@ -20,9 +20,7 @@ import NoteForm from "../NoteForm/NoteForm";
 export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-
   const [searchInput, setSearchInput] = useState("");
-
   const [search, setSearch] = useState("");
 
   const perPage = 8;
@@ -44,14 +42,6 @@ export default function App() {
 
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
-
-  const handleCreateNoteSubmit = (newNoteData: {
-    title: string;
-    content: string;
-    tag: Note["tag"];
-  }) => {
-    createNoteMutation.mutate(newNoteData);
-  };
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -93,7 +83,7 @@ export default function App() {
           </div>
         )}
 
-        {hasResults && (
+        {hasResults && totalPages > 1 && (
           <Pagination
             pageCount={totalPages}
             currentPage={currentPage}
@@ -107,7 +97,7 @@ export default function App() {
 
         {isModalOpen && (
           <Modal onClose={handleCloseModal}>
-            <NoteForm onSubmit={handleCreateNoteSubmit} />
+            <NoteForm onCancel={handleCloseModal} />
           </Modal>
         )}
       </main>
